@@ -29,7 +29,7 @@ jobs:
       - name: 解压源码
         run: unzip -q '龙娘悬浮窗安卓项目.zip' -d source
 
-           - name: 修复点击弹跳
+      - name: 修复点击弹跳
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -69,7 +69,7 @@ jobs:
                         method+"\nvoid cycle(){tapBounce();", 1)
           p.write_text(s)
           PY - name: 编译 APK
-        run: gradle -p source assembleDebug --no-daemon
+               run: gradle -p source assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
