@@ -29,7 +29,46 @@ jobs:
       - name: 解压源码
         run: unzip -q '龙娘悬浮窗安卓项目.zip' -d source
 
-      - name: 编译 APK
+           - name: 修复点击弹跳
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("source/app/src/main/java/dev/sakatourin/dragon/DragonService.java")
+          s = p.read_text()
+          method = """
+          int tapVersion=0;
+          void tapBounce(){
+            final View pet=root.getChildAt(0);
+            Object idle=pet.getTag();
+            if(idle instanceof android.animation.Animator)
+              ((android.animation.Animator)idle).cancel();
+            final int v=++tapVersion;
+            final long start=android.os.SystemClock.uptimeMillis();
+            pet.setPivotX(pet.getWidth()/2f);
+            pet.setPivotY(pet.getHeight()*.94f);
+            final float[] xs={1,1.14f,.92f,1.07f,.99f,1};
+            final float[] ys={1,.76f,1.14f,.91f,1.03f,1};
+            final float[] dy={0,3,-23,0,-5,0};
+            pet.postOnAnimation(new Runnable(){public void run(){
+              if(!alive||v!=tapVersion)return;
+              float t=Math.min(1,
+                (android.os.SystemClock.uptimeMillis()-start)/650f)*5;
+              int i=Math.min(4,(int)t);
+              float a=t-i;
+              a=a*a*(3-2*a);
+              pet.setScaleX(xs[i]+(xs[i+1]-xs[i])*a);
+              pet.setScaleY(ys[i]+(ys[i+1]-ys[i])*a);
+              pet.setTranslationY(dp(dy[i]+(dy[i+1]-dy[i])*a));
+              if(t<5)pet.postOnAnimation(this);
+            }});
+          }
+          """
+          s = s.replace("void cycle(){bounce();", "void cycle(){")
+          assert "void cycle(){" in s, "未找到点击方法"
+          s = s.replace("void cycle(){",
+                        method+"\nvoid cycle(){tapBounce();", 1)
+          p.write_text(s)
+          PY - name: 编译 APK
         run: gradle -p source assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
